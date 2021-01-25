@@ -1,0 +1,182 @@
+<html>
+	<head>
+	<title>Lesík+</title>
+	<meta charset="utf8">
+	<style>
+		table, th, td {
+		  border: 1px solid black;
+		  text-align: left;
+		  font-weight: normal;
+		  border-collapse: collapse;
+		  padding: 5px;
+		}
+	#battle{
+		  margin: 5px;
+		}
+		.cent {
+		 text-align: center;
+		}
+		img { 
+			image-rendering: optimizeSpeed;             /* STOP SMOOTHING, GIVE ME SPEED  */
+			image-rendering: -moz-crisp-edges;          /* Firefox                        */
+			image-rendering: -o-crisp-edges;            /* Opera                          */
+			image-rendering: -webkit-optimize-contrast; /* Chrome (and eventually Safari) */
+			image-rendering: pixelated; /* Chrome */
+			image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
+			-ms-interpolation-mode: nearest-neighbor;   /* IE8+                           */
+
+		}
+	</style>
+	<script>
+		function nextInt(max) {
+			min = Math.ceil(0);
+			max = Math.floor(max);
+			return Math.floor(Math.random() * (max - min)) + min;
+		}
+		var log = console.log;
+		class Being{
+			constructor(image,name,hp,atk,def,acc,dex){
+				this.image=image;
+				this.name=name;
+				this.hp=hp;
+				this.mhp=hp;
+				this.atk=atk;
+				this.def=def;
+				this.acc=acc;
+				this.dex=dex;
+				this.lives=true;
+			}
+			damage(val){
+				this.hp-=val;
+				if(this.hp<=0){
+					this.hp=0;
+					this.lives=false;
+				}
+			}
+			attack(being){
+				if(nextInt(this.acc+1)>=nextInt(being.dex+1)){
+					var hit = nextInt(this.atk+1)-nextInt(being.def+1);
+					if(hit>0)
+						being.damage(hit);
+					else
+						log(being.name+" ústál ránu!")
+				}else{
+					log(being.name+" se vyhnul!");
+				}
+			}
+		}
+		class Place{
+			constructor(name,enemies){
+				this.name=name;
+				this.enemies=enemies;
+			}
+			generateEnemy(depth){
+				return this.enemies[nextInt(depth+1)];
+			}
+			maxDepth(){
+				return this.enemies.length-1;
+			}
+		}
+		var hojda = new Being(null,"Hojda",10,3,2,2,1);
+		var beach = new Place("Lesnatá pláž",[null]);
+		var currentEnemy = null;
+		beach.enemies.push(new Being("chobotnicek.png","Chobotníček",3,1,2,10,0));
+		beach.enemies.push(new Being("loser_pumpkin.png","Dýně která prohrála",5,1,5,1,0));
+		beach.enemies.push(new Being("strange_creature.png","Prapodivín",2,1,11,1,0));
+		beach.enemies.push(new Being("chochobotnicek.png","Chochobotníček",6,2,4,10,5));
+		beach.enemies.push(new Being("cinska_beruska.png","Čínská behruška",2,10,1,5,10));
+		beach.enemies.push(new Being("ekoplast.png","Rozložník",20,3,5,5,5));
+		beach.enemies.push(new Being("tsuchinoko.png","Tlustý had",40,3,10,6,6));
+		beach.enemies.push(new Being("shy_but_deadly.png","Ničí polívka",2,100,10,4,20));
+		var locations=[beach];
+		var currentPlace=locations[0];
+		var currentDepth = 1;
+		function populateBeingDescription(box,being){
+			var ele = document.getElementById(box);
+			if(being!=null){
+				var desc="";
+				if(being.image!=null){
+					desc+="<img src=img/"+being.image+" width=\"100px\"><br>";
+				}
+				desc+="<b>"+being.name+"</b>";
+				if(!being.lives)
+					desc+="<br> (mrtvý)"
+				desc+="<br>HP: "+being.hp+"/"+being.mhp+"<br>ATK: "+being.atk+"<br>DEF: "+being.def+"<br>ACC: "+being.acc+"<br>DEX: "+being.dex;
+				ele.innerHTML = desc;
+			}else{
+				ele.innerHTML="Nikdo se neukázal";
+			}
+		}
+		function refresh(){
+			populateBeingDescription("player_box",hojda);
+			populateBeingDescription("enemy_box",currentEnemy);
+			var elDepth = document.getElementById("depth_value");
+			elDepth.innerHTML=currentDepth;
+		}
+		function step(){
+			currentEnemy = currentPlace.generateEnemy(currentDepth);
+			refresh();
+		}
+		function stepBack(){
+			if(currentDepth>1)
+				currentDepth-=1;
+			if(currentEnemy!=null&&currentEnemy.lives)
+				currentEnemy.attack(hojda);
+			step();
+		}
+		function stepForward(){
+			currentDepth+=1;
+			if(currentDepth>=currentPlace.maxDepth())
+				currentDepth=currentPlace.maxDepth();
+			if(currentEnemy!=null&&currentEnemy.lives)
+				currentEnemy.attack(hojda);
+			step();
+		}
+		function battle(){
+			if(currentEnemy!=null&&currentEnemy.lives){
+				hojda.attack(currentEnemy);
+				currentEnemy.attack(hojda);
+				refresh();
+			}
+		}
+		function start(){
+			refresh();
+		}
+		window.onload=start;
+	</script>
+	</head>
+	<body>
+		<h1>Lesík</h1>
+			Vyber si kam jít:
+			<select id="places">
+			  <option value="beach">Lesnatá pláž</option>
+			</select>
+			<button id="place_button">Vyber</button><br>
+			Jsi v hloubce území: <span id="depth_value"></span><br>
+			<button id="place_button" onclick="stepForward();">Jdi dál</button><br>
+			<button id="place_button" onclick="step();">Přešlapuj na místě</button><br>
+			<button id="place_button" onclick="stepBack();">Vrať se</button><br>
+			<div id="battle">
+				<table>
+				<tr>
+				<th>
+				<table><tr>
+					<th id="player_box"><b>Hojda</b><br>HP: 100/100<br>ATK: 200/200</th>
+					<th id="enemy_box"><b>Nepřítel</b><br>HP: 100/100<br>ATK: 200/200</th>
+					</tr></table></th>
+				</tr>
+				<tr>
+				<th>
+				<table width="100%" style="text-align: center;">
+				<tr>
+					<th class="cent" onclick="battle()"><button>Útoč</button></th>
+					<th class="cent"><button>Braň se</button></th>
+					<th class="cent"><button>Použij</button></th>
+				</tr>
+				</table>
+				</th>
+				</tr>
+				</table>
+			</div>
+		</body>
+</html>
